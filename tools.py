@@ -18,7 +18,7 @@ from data_processing import data_processing, find_and_replace, data_processing, 
 from sklearn.metrics import roc_curve as roc_scikit
 from sklearn.metrics import auc, precision_recall_curve
 
-# PAT: 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 
+# PAT: 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
 
 warnings.filterwarnings("error")
 warnings.simplefilter('ignore', BiopythonWarning)
