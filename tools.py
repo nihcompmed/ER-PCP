@@ -553,69 +553,8 @@ def no_diag(mat, diag_l, s_index=None, make_big=False):
     return new_mat
 
 
-
-def contact_map_pdb2msa(pdb_df, pdb_file, removed_cols, pdb_out_dir='./', printing=True):
-    if printing:
-        print('\n\n#-----------------------#\nGenerating Contact Map\n#----------------------------#\n')
-
-    pdb_id = pdb_df['PDB ID']
-    # pdb_file = pdb_list.retrieve_pdb_file(pdb_id)
-
-    pdb_start = pdb_df['start'] - 1
-    pdb_end = pdb_df['end'] 
-    pdb_chain = pdb_df['Chain']
-    pdb_pp_index = pdb_df['Polypeptide Index']
-
-    pdb_model = pdb_parser.get_structure(str(pdb_id), pdb_file)[0]
-    found_pp_match = False
-    for chain in pdb_model.get_chains():
-        if chain.get_id() == pdb_chain:
-            pass
-        else:
-            continue
-        ppb = PPBuilder().build_peptides(chain)
-
-        # # PYDCA method for getting polypeptide sequence...
-        poly_seq_new = [res.get_resname().strip() for res in filter_residues(pdb_model[chain.get_id()].get_list())]
-        print('new poly seq list: ', ''.join(poly_seq_new))
-
-        # Get full list of CA coords from poly_seq
-        poly_seq = list()
-        pp_ca_coords_full = list()
-        for i, pp in enumerate(ppb):
-            if i == pdb_pp_index:
-                pass
-            else:
-                continue
-            for char in str(pp.get_sequence()):
-                poly_seq.append(char)
-            poly_seq_ca_atoms = pp.get_ca_list()
-            pp_ca_coords_full.extend([a.get_coord() for a in poly_seq_ca_atoms])
-
-        print('\nChain ', chain, ':\n', ''.join(poly_seq))
-        poly_seq_range = poly_seq[pdb_start:pdb_end]
-        print( '\n',''.join(poly_seq_range), '\n')
-        print('poly_seq_range (%d)' % len(poly_seq_range))
-        print('pp seq coordinates (%d)' % len(pp_ca_coords_full))
-
-    n_amino_full = len(pp_ca_coords_full)
-
-    # Extract coordinates and sequence char in PDB-range\
-    pp_ca_coords_full_range = pp_ca_coords_full[pdb_start:pdb_end]
-    print('pp seq coordinates in range (%d)' % len(pp_ca_coords_full_range))
-
-    ct_full = distance_matrix(pp_ca_coords_full, pp_ca_coords_full)
-    removed_cols_range = np.array([col-pdb_start for col in removed_cols if col<=pdb_end and col>=pdb_start])
-    print('curating removed columns in range..(%d -> %d)\n'% (len(removed_cols), len(removed_cols_range)))
-    print('poly_seq_range: ', len(poly_seq_range))
-    poly_seq_curated = np.delete(poly_seq_range, removed_cols_range)
-    pp_ca_coords_curated = np.delete(pp_ca_coords_full_range, removed_cols_range, axis=0)
-    ct = distance_matrix(pp_ca_coords_curated, pp_ca_coords_curated)
-
-    return ct, ct_full, n_amino_full, poly_seq_curated, poly_seq_range, poly_seq, pp_ca_coords_curated, pp_ca_coords_full_range, removed_cols_range
-
-
-def contact_map_pdb2msa_new(pdb_df, pdb_file, removed_cols, pdb_s_index, pdb_out_dir='./', printing=True):
+def contact_map(pdb_df, pdb_file, removed_cols, pdb_s_index, pdb_out_dir='./', printing=True):
+    # originally contact_map_pdb2msa_new()
     if printing:
         print('\n\n#-----------------------#\nGenerating Contact Map\n#----------------------------#\n')
 
@@ -684,131 +623,93 @@ def contact_map_pdb2msa_new(pdb_df, pdb_file, removed_cols, pdb_s_index, pdb_out
 
 
 
-def contact_map(pdb, ipdb, pp_range, cols_removed, s_index, ref_seq=None, printing=True, pdb_out_dir='./', refseq=None):
-    if printing:
-        print('\n\n#-----------------------#\nGenerating Contact Map\n#----------------------------#\n')
-
-    print('Checking %d PDB sequence for best match to reference sequence' % pdb.shape[0])
-    print(pdb[ipdb, :])
-    pdb_id = pdb[ipdb, 5]
-    pdb_chain = pdb[ipdb, 6]
-    # pdb_start,pdb_end = int(pdb[ipdb,6])-1,int(pdb[ipdb,8])-1 # -1 due to array-indexing
-    pdb_start_index, pdb_end_index = int(pp_range[0] - 1), int(pp_range[1] - 1)
-    pdb_start = pdb_start_index
-
-    # TODO: Figure out the indexing
-    pdb_end = pdb_end_index
-    pdb_end = pdb_end_index + 1
-
-    # print('pdb id, chain, start, end, length:',pdb_id,pdb_chain,pdb_start,pdb_end,pdb_end-pdb_start+1)
-
-    # print('download pdb file')
-    pdb_file = pdb_list.retrieve_pdb_file(str(pdb_id), file_format='pdb', pdir=pdb_out_dir)
-    # pdb_file = pdb_list.retrieve_pdb_file(pdb_id)
-
-    # ------------------------------------------------------------------------------------------------- #
-
-    chain = pdb_parser.get_structure(str(pdb_id), pdb_file)[0][pdb_chain]
-    good_coords = []
-    coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
-    ca_residues = np.array([a.get_name() == 'CA' for a in chain.get_atoms()])
-    ca_coords = coords_all[ca_residues]
-    in_range_ca_coords = ca_coords[pdb_start:pdb_end+1] ## change 1/18/22 ecc
-    n_amino = len(in_range_ca_coords)
-
-    ppb = PPBuilder().build_peptides(chain)
-    #    print(pp.get_sequence())
-    if printing:
-        print('peptide build of chain produced %d elements' % (len(ppb)))
-
-    # Get full list of CA coords from poly_seq
-    poly_seq = list()
-    pp_ca_coords_full = list()
-    for i, pp in enumerate(ppb):
-        for char in str(pp.get_sequence()):
-            poly_seq.append(char)
-        poly_seq_ca_atoms = pp.get_ca_list()
-        pp_ca_coords_full.extend([a.get_coord() for a in poly_seq_ca_atoms])
-
-    n_amino_full = len(pp_ca_coords_full)
-    if printing:
-        print('original poly_seq: \n', poly_seq, '\n length: ', len(poly_seq))
-        print('Polypeptide Ca Coord list: ', len(pp_ca_coords_full), '\n length: ', len(pp_ca_coords_full))
-
-    # Extract coordinates and sequence char in PDB-range
-    print('length of pp_ca_coords_full ', len(pp_ca_coords_full))
-    print('pdb range %d, %d' % (pdb_start, pdb_end))
-    pp_ca_coords_full_range = pp_ca_coords_full[pdb_start:pdb_end + 1]
-    print('length of pp_ca_coords_full ', len(pp_ca_coords_full_range))
-    poly_seq_range = poly_seq[pdb_start:pdb_end + 1]
-    if printing:
-        print('\n\nExtracting pdb-range from full list of polypeptide coordinates')
-        print('PDB-range poly_seq: \n', poly_seq_range, '\n length: ', len(poly_seq_range))
-        print('PDB-range Polypeptide Ca Coord list: ', len(pp_ca_coords_full_range), '\n length: ',
-              len(pp_ca_coords_full_range))
-        print('\n\n')
-
-        # Get curated polypeptide sequence (using cols_removed) & Get coords of curated pp seq
-    poly_seq_curated = np.delete(poly_seq_range, cols_removed)
-    pp_ca_coords_curated = np.delete(pp_ca_coords_full_range, cols_removed, axis=0)
-
-    
-    if printing:
-        print('Sequence inside given PDB range (poly_seq_range) with columns removed: (poly_seq_range_curated): \n',
-              poly_seq_curated, '\n length: ', len(poly_seq_curated))
-        print('Curated Polypeptide Ca Coord list: ', len(pp_ca_coords_curated), '\n length: ',
-              len(pp_ca_coords_curated))
-        print('\n\ns_index len: ', len(s_index))
-        print(
-            "\n\n#---------#\nNumber of good amino acid coords: %d should be same as sum of s_index and cols_removed" % n_amino)
-        print("s_index and col removed len %d " % (len(s_index) + len(cols_removed)))
-        print(
-            'all coords %d\nall ca coords: %d\nprotein rangs ca coords len: %d\npp ca coords: %d\npp ca curated coords len: %d\n#----------#\n\n' % (
-                len(coords_all), len(ca_coords), len(in_range_ca_coords), len(pp_ca_coords_full),
-                len(pp_ca_coords_curated)))
-
-    ct_full = distance_matrix(in_range_ca_coords, in_range_ca_coords)
-    ct_full = distance_matrix(pp_ca_coords_full, pp_ca_coords_full)
-    coords = np.array(in_range_ca_coords)
-
-    # -------------------------------------------------------------------------------------------------#
-    coords_remain = np.delete(coords, cols_removed, axis=0)
-    # print(coords_remain.shape)
-
-    ct = distance_matrix(coords_remain, coords_remain)
-    ct = distance_matrix(pp_ca_coords_curated, pp_ca_coords_curated)
-    if printing:
-        print(coords_remain.shape)
-        print('\n\n#-----------------------#\nContact Map Generated \n#----------------------------#\n')
-
-    return ct, ct_full, n_amino_full, poly_seq_curated, poly_seq_range
-
-
-def roc_curve_new(ct, di, ct_thres):
+def generate_roc_curve(ct, di, ct_thres, s_index, ld_thresh=5, get_uniform=False):
     """
+    originally roc_curve_new
     ct: n x n matrix of True/False for contact
 
     di: n x n matrix of coupling info where n is number of positions with contact predictions
 
     ct_trhes:  distance for contact threshold
+ 
+    get_uniform: (boolean) Do you want uniform length fpr,tpr curves (for Pfam-Pfram prediction comparison)
+
+    s_index:  n x 1 array of true-index positions of aas. if not None then |i-j| > 4 linear distance is enforced.
     """
+
     ct1 = ct.copy()
 
     ct_pos = ct1 < ct_thres
     ct1[ct_pos] = 1
     ct1[~ct_pos] = 0
-
+   
     mask = np.triu(np.ones(di.shape[0], dtype=bool), k=1)
     # argsort sorts from low to high. [::-1] reverses 
     order = di[mask].argsort()[::-1]
     ct_flat = ct1[mask][order]
+    
+
+    #print('di shape: ', di.shape)
+    #print('Using s_index (len %d) to constrain di predictions by linear aa distance of 4' % len(s_index))
+    # get matrix of linear distance between positions
+    linear_distance = np.zeros((len(s_index),len(s_index)))
+    for i, ii in enumerate(s_index):
+        for j, jj in enumerate(s_index):
+            linear_distance[i,j] = abs(ii - jj)
+    ld = linear_distance >= ld_thresh
+    ld_flat = ld[mask][order]
+    #print(ld_flat)
+    old_len = len(ct_flat)
+    ct_flat = ct_flat[ld_flat]
+    ct_pos_flat = ct[mask][order][ld_flat]
+    #print(ct_flat[:10])
+    #print(ld_flat[:10])
+    #print(ct_flat_ld[:10])
+    #print('length of predictions before: %d and after: %d linear distance constraint' % (old_len, len(ct_flat)))
+
+
+    if get_uniform: # get uniform length curves
+        tp = np.cumsum(ct_flat, dtype=float)
+        fp = np.cumsum(~ct_flat.astype(int), dtype=float)
+        print('tp: ', tp)
+        print('fp: ', fp)
+        print(len(tp), len(fp))
+        if tp[-1] !=0:
+            tp /= tp[-1]
+            fp /= fp[-1]
+        # bining (to reduce the size of tp,fp and make fp having the same values for every pfam)
+        nbin = 101
+        pbin = np.linspace(0,1,nbin, endpoint=True)
+        #print(pbin)
+        fp_size = fp.shape[0]
+        fpbin = np.ones(nbin)
+        tpbin = np.ones(nbin)
+        for ibin in range(nbin-1):
+            # find value in a range
+            t1 = [(fp[t] > pbin[ibin] and fp[t] <= pbin[ibin+1]) for t in range(fp_size)]
+    
+            if len(t1)>0 :
+                fpbin[ibin] = fp[t1].mean()
+                tpbin[ibin] = tp[t1].mean()
+            else:
+                #print(i)
+                tpbin[ibin] = tpbin[ibin-1]
+        tpr_uni = tpbin
+        fpr_uni = fpbin
+        uni_bin = pbin
+        auc_uni= auc(fpr_uni, tpr_uni)
+    
     # print("ct_flat dimensions: ", np.shape(ct_flat))
     # print(di[mask][order][:50])
     # print(ct_flat[:50])
-    fpr, tpr, thresholds = roc_scikit(ct_flat, di[mask][order])
+    fpr, tpr, thresholds = roc_scikit(ct_flat, di[mask][order][ld_flat])
     roc_auc= auc(fpr, tpr)
     print('ct thresh %f gives auc = %f' % (ct_thres, roc_auc))
-    return fpr, tpr, thresholds, roc_auc
+    if get_uniform:
+        return fpr, tpr, thresholds, roc_auc, tpr_uni, fpr_uni, auc_uni, uni_bin, ct_pos_flat
+    else:
+        return fpr, tpr, thresholds, roc_auc, ct_pos_flat
+
 
 def precision_curve(ct, di, ct_thres):
     """
@@ -835,74 +736,6 @@ def precision_curve(ct, di, ct_thres):
     return precision, recall, thresholds
 
  
-def roc_curve(ct, di, ct_thres):
-    """
-    ct: n x n matrix of True/False for contact
-
-    di: n x n matrix of coupling info where n is number of positions with contact predictions
-
-    ct_trhes:  distance for contact threshold
-    """
-    ct1 = ct.copy()
-
-    ct_pos = ct1 < ct_thres
-    ct1[ct_pos] = 1
-    ct1[~ct_pos] = 0
-
-    mask = np.triu(np.ones(di.shape[0], dtype=bool), k=1)
-    # argsort sorts from low to high. [::-1] reverses 
-    order = di[mask].argsort()[::-1]
-    print("order dimensions: ", np.shape(order))
-    print(order[:50])
-    ct_flat = ct1[mask][order]
-    print("ct_flat dimensions: ", np.shape(ct_flat))
-    print(di[mask][order][:50])
-    print(ct_flat[:50])
-
-    tp = np.cumsum(ct_flat, dtype=float)
-    fp = np.cumsum(~ct_flat.astype(int), dtype=float)
-    print('last tp and fp cumsum vals:')
-    print(tp[-1])
-    print(fp[-1])
-
-    if tp[-1] != 0:
-        tp /= tp[-1]
-        fp /= fp[-1]
-
-    # Binning (to reduce the size of tp,fp and make fp having the same values for every Pfam)
-    nbin = 101
-    pbin = np.linspace(0, 1, nbin, endpoint=True)
-
-    # print(pbin)
-
-    fp_size = fp.shape[0]
-
-    fpbin = np.ones(nbin)
-    tpbin = np.ones(nbin)
-    for ibin in range(nbin - 1):
-        # find value in a range
-        t1 = [(fp[t] > pbin[ibin] and fp[t] <= pbin[ibin + 1]) for t in range(fp_size)]
-
-        if len(t1) > 0:
-            fpbin[ibin] = fp[t1].mean()
-            tpbin[ibin] = tp[t1].mean()
-            # try:
-            #     fpbin[ibin] = fp[t1].mean()
-            # except RuntimeWarning:
-            #     # print("Empty mean slice")
-            #     fpbin[ibin] = 0
-            # try:
-            #     tpbin[ibin] = tp[t1].mean()
-            # except RuntimeWarning:
-            #     # print("Empty mean slice")
-            #     tpbin[ibin] = 0
-        else:
-            # print(i)
-            tpbin[ibin] = tpbin[ibin - 1]
-            # print(fp,tp)
-    # return fp,tp,pbin,fpbin,tpbin
-    return pbin, tpbin, fpbin
-
 
 on_pc = False
 if on_pc:
