@@ -8,13 +8,12 @@ This repository is supplementarty to the publication (PUBLICATION LINK). In the 
 * Comparison with other popular methods
 
 ## Scripts and Drivers
-* 
 * data_processing - file for generating a PDB-MSA connection (**PDB2MSA**) and and preprocessing data
 * expectation_reflection.py - file to run inference of network interactions using Expectation Reflection
 ## Example Jupyter Notebooks
-* PDB2MSA.ipynb - Notebook which shows the processing for finding a PDB-MSA connection, pre-processing the connected MSA and running Expectation Reflections to acquire Direct Information (DI) used to predict tertiary protein structure
-* pydca_demo.ipynb - Notebook which shows how the PYDCA implementaion to acquire the Direct Information (DI) used to predict tertiary protein structure
-* Method_Comparison.ipynb - Notebook which shows how Expectation Reflection can be compared against other methods (PYDCA results) in order to analyse the resulting Protein Strcture prediction.
+* [PDB2MSA.ipynb](https://github.com/nihcompmed/ER_DCA/blob/main/PDB2MSA.ipynb) - Notebook which shows the processing for finding a PDB-MSA connection, pre-processing the connected MSA and running Expectation Reflections to acquire Direct Information (DI) used to predict tertiary protein structure
+* [pydca_demo.ipynb](https://github.com/nihcompmed/ER_DCA/blob/main/pydca_demo.ipynb) - Notebook which shows how the PYDCA implementaion to acquire the Direct Information (DI) used to predict tertiary protein structure
+* [Method_Comparison.ipynb](https://github.com/nihcompmed/ER_DCA/blob/main/Method_Comparison.ipynb) - Notebook which shows how Expectation Reflection can be compared against other methods (PYDCA results) in order to analyse the resulting Protein Strcture prediction.
 
 Feel free to contact <evancresswell@gmail.com> or <vipulp@niddk.nih.gov > regarding questions on implementation and execution of repo
 
