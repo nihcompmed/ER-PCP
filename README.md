@@ -27,65 +27,7 @@ Feel free to contact <evancresswell@gmail.com> or <vipulp@niddk.nih.gov > regard
 - [Results](#Results)
 	- Result Drivers used to generate figures for papers.
 
-# PDB to MSA Mapping
-[Back to Top](#Table-of-Contents)
 
-### Required Files
-* **09062020-Cov19gisaid--SeqIdDesc200-aligned-FastaCikti.fa** -- previously aligned fasta file (for testing)
-	* downloaded from http://www.dilekbalik.com/SARS-CoV-2_ODOTool/
-* **wuhan_ref_fasta** -- covid reference genome: NC_045512.2
-* **09062020-Cov19gisaid--SeqIdDesc200-aligned-FastaCikti.fa** -- Full un-aligned fasta file
-	* downloaded Oct 20 20202 from https://www.epicov.org/epi3/entities/tmp/tmp_sd_2020_10_20_02_12_qigibl_4j510bafde3/sequences_2020-10-19_07-21.fasta.gz
-
-## Alignment Process
-[Back to Top](#Table-of-Contents)
-
-*we want to generate cov_gen_aligned.fasta from our un-aligned fasta file using the Wuhan reference genome*
-
-### FASTA Data:
-All FASTA data both created and required for these simulations can be found in the fasta_files/ directory, organized as follows.
-- **.fasta** files containing full genome and clades alignments
-### Test run
-
-```console
-foo@bar:~$ mafft --auto --keeplength --addfragments 09062020-Cov19gisaid--SeqIdDesc200-aligned-FastaCikti.fa wuhan_ref.fasta > 
-```
-
-### Full Genome Alignment
-- Break up un-aligned fasta files
-	- Assumes you have the following files in **/path/to/er_covid19/** 
-		- subject genome file: **wuhan_ref.fasta** 
-		- aligned genome file: **cov_gen_aligned.fasta** 
-		- directory for output: **/path/to/er_covid19/cov_fasta_files/**
-```console
-foo@bar:~$ singularity exec -B /path/to/er_covid19/biowulf,/path/to/er_covid19/covid_proteins /path/to/er_covid19/LADER.simg python break_up_fasta.py /path/to/er_covid19/ 
-```			
-	- This creates 
-		- broken up fasta files for alignment in *path/to/er_covid19/cov_fasta_files/* 
-		- script to align:  **cov_align.swarm** (for cluster computation)
-
-- Run alignment pieces which aligns with mafft (this can be done on a cluster or sequentially).
-
-```console
-foo@bar:~$ ./submit_align_swarm.script 
-```
-
-	- Individual imulation requirements
-		- batches of 15 (lines in **cov_align.swarm**)
-		- 10 GB
-		- 2 hours
-- Finish by concatenating resulting mini-alignments in cov_fasta_files/ (directory created to house mini-alignments) to create full alignment: **covid_genome_full_aligned.fasta**
-```console
-foo@bar:~$ singularity exec -B /path/to/er_covid19/biowulf,/path/to/er_covid19/covid_proteins /path/to/er_covid19/LADER.simg python concat_fasta.py /path/to/er_covid19/ 
-```
-
-### Get Clade Alignments 
-- once you have the full genome aligned file you can get clades using get_clades.py
-- get_clades.py has subject file hard coded:
-
-``` console
-foo@bar:~$  singularity exec -B /path/to/er_covid19/biowulf/,/path/to/er_covid19/covid_proteins /path/to/er_covid19/LADER.simg python get_clades.py /path/to/er_covid19/
-```
 # Anaconda Environment Setup
 [Back to Top](#Table-of-Contents)
 	- Assumes you have Anaconda or Miniconda: https://www.anaconda.com/
@@ -99,6 +41,15 @@ foo@bar:~$ conda create --name DCA_ER --file DCA_ER_requirements.txt
 foo@bar:~$ conda create --name PYDCA --file PDYCA_requirements.txt
 ```
 See Anaconda documentation for more on environment maintenence and implementation: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+
+# PDB to MSA Mapping
+[Back to Top](#Table-of-Contents)
+
+* Given a PDB structure file we use ProDy to search all available Pfam alignments for the best matching Multiple Sequence Alignment (MSA)
+* We outline this process with a jupyter notebook using PDB ID 1ZDR as an example
+
+
+### Example in PDB2MSA.ipynb jupyter notebook
 
 # Expectiation Reflection
 [Back to Top](#Table-of-Contents)
