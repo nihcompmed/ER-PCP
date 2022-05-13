@@ -88,6 +88,17 @@ foo@bar:~$  singularity exec -B /path/to/er_covid19/biowulf/,/path/to/er_covid19
 ```
 # Anaconda Environment Setup
 [Back to Top](#Table-of-Contents)
+	- Assumes you have Anaconda or Miniconda: https://www.anaconda.com/
+	- If not using Anaconda or Miniconda see the following files for the DCA_ER and PYDCA requiremetns
+		- DCA_ER_requirments.txt
+    		- Enviornment: PDYCA_requirements.txt
+* We want to create two environments for our implementation of Expectaion Reflection (DCA_ER env) and for the PYDCA implementation of the Mean Field and Pseudoliklihood models (PYDCA env)
+* To create these envirnoments in conda simply execute the following commands
+```console
+foo@bar:~$ conda create --name DCA_ER --file DCA_ER_requirements.txt 
+foo@bar:~$ conda create --name PYDCA --file PDYCA_requirements.txt
+```
+See Anaconda documentation for more on environment maintenence and implementation: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
 
 # Expectiation Reflection
 [Back to Top](#Table-of-Contents)
