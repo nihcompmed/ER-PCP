@@ -46,10 +46,31 @@ See Anaconda documentation for more on environment maintenence and implementatio
 [Back to Top](#Table-of-Contents)
 
 * Given a PDB structure file we use ProDy to search all available Pfam alignments for the best matching Multiple Sequence Alignment (MSA)
+* This takes the following steps
+	1. Load poly-peptide sequences for all chains in PDB structure
+	2. Loop through different chains of PDB strucutre (ie Chain A, B, etc)
+		* ```ProDy.searchPFAM()``` with poly-peptide chain
+		* Append search results to DataFrame PDB-Pfam matches
+	3. Sort PDB-Pfam matches by 'bitscore'
+
 * We outline this process with a jupyter notebook using PDB ID 1ZDR as an example
+### Example in PDB2MSA.ipynb jupyter notebook (cells 2-4)
 
+# Data Processing
 
-### Example in PDB2MSA.ipynb jupyter notebook
+	\begin{algorithmic}[1]
+		\For {PDB-Pfam matches}
+		\State Load Pfam MSA
+		\State Find reference sequence in MSA
+		\State Trim MSA by reference sequence
+		\State Remove duplicate rows
+		\State Remove bad sequences ($\geq 80\%$ gaps in sequence)
+		\State Remove bad columnds ($\geq 80\%$ gaps in column)
+		\State Find and Replace amino acid states ($Z\rightarrow \{Q,E\}, B\rightarrow \{N,D\}, X\rightarrow \{\textrm{All AA}\}$)
+		\State Remove conserved columns ($\geq 80\%$ identity in column)
+		\EndFor
+	\end{algorithmic} 
+\end{algorithm} 
 
 # Expectiation Reflection
 [Back to Top](#Table-of-Contents)
