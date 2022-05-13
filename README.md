@@ -57,20 +57,20 @@ See Anaconda documentation for more on environment maintenence and implementatio
 ### Example in PDB2MSA.ipynb jupyter notebook (cells 2-4)
 
 # Data Processing
+* Once a PDB ID and Pfam ID have been matched we can acquire the Pfam's MSA. However before applying Expectation Reflection to the MSA we must preprocess the data MOTIVATION!!!
+* Our Data processing is outlined by the following steps
+	1. Looping through PDB-Pfam matches
+		* Load Pfam MSA
+		* Find reference sequence in MSA
+		* Trim MSA by reference sequence
+		* Remove duplicate rows
+		* Remove bad sequences ($\geq 80\%$ gaps in sequence)
+		* Remove bad columnds ($\geq 80\%$ gaps in column)
+		* Find and Replace amino acid states ($Z\rightarrow \{Q,E\}, B\rightarrow \{N,D\}, X\rightarrow \{\textrm{All AA}\}$)
+		* Remove conserved columns ($\geq 80\%$ identity in column)
+	2. Because the PDB-Pfam matches are ordered before data processing this looping data processing results in a series of pre-processed MSAs ordered by the strength of their match with PDB structure.
+	3. We simply take the first of the series and move forward with that pre-processed MSA.
 
-	\begin{algorithmic}[1]
-		\For {PDB-Pfam matches}
-		\State Load Pfam MSA
-		\State Find reference sequence in MSA
-		\State Trim MSA by reference sequence
-		\State Remove duplicate rows
-		\State Remove bad sequences ($\geq 80\%$ gaps in sequence)
-		\State Remove bad columnds ($\geq 80\%$ gaps in column)
-		\State Find and Replace amino acid states ($Z\rightarrow \{Q,E\}, B\rightarrow \{N,D\}, X\rightarrow \{\textrm{All AA}\}$)
-		\State Remove conserved columns ($\geq 80\%$ identity in column)
-		\EndFor
-	\end{algorithmic} 
-\end{algorithm} 
 
 # Expectiation Reflection
 [Back to Top](#Table-of-Contents)
