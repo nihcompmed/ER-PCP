@@ -7,6 +7,14 @@ This repository is supplementarty to the publication (PUBLICATION LINK). In the 
 * Method result plotting
 * Comparison with other popular methods
 
+### Scripts and Drivers
+* data_processing - file for generating a PDB-MSA connection (**PDB2MSA**) and and preprocessing data
+* expectation_reflection.py - file to run inference of network interactions using Expectation Reflection
+### Example Jupyter Notebooks
+* [PDB2MSA.ipynb](https://github.com/nihcompmed/ER_DCA/blob/main/PDB2MSA.ipynb) - Notebook which shows the processing for finding a PDB-MSA connection, pre-processing the connected MSA and running Expectation Reflections to acquire Direct Information (DI) used to predict tertiary protein structure
+* [pydca_demo.ipynb](https://github.com/nihcompmed/ER_DCA/blob/main/pydca_demo.ipynb) - Notebook which shows how the PYDCA implementaion to acquire the Direct Information (DI) used to predict tertiary protein structure
+* [Method_Comparison.ipynb](https://github.com/nihcompmed/ER_DCA/blob/main/Method_Comparison.ipynb) - Notebook which shows how Expectation Reflection can be compared against other methods (PYDCA results) in order to analyse the resulting Protein Strcture prediction.
+
 Feel free to contact <evancresswell@gmail.com> or <vipulp@niddk.nih.gov > regarding questions on implementation and execution of repo
 
 #### Package Requirements
@@ -27,108 +35,60 @@ Feel free to contact <evancresswell@gmail.com> or <vipulp@niddk.nih.gov > regard
 - [Results](#Results)
 	- Result Drivers used to generate figures for papers.
 
+
+# Anaconda Environment Setup
+[Back to Top](#Table-of-Contents)
+	- Assumes you have Anaconda or Miniconda: https://www.anaconda.com/
+	- If not using Anaconda or Miniconda see the following files for the DCA_ER and PYDCA requiremetns
+		- DCA_ER_requirments.txt
+    		- Enviornment: PDYCA_requirements.txt
+* We want to create two environments for our implementation of Expectaion Reflection (DCA_ER env) and for the PYDCA implementation of the Mean Field and Pseudoliklihood models (PYDCA env)
+* To create these envirnoments in conda simply execute the following commands
+```console
+foo@bar:~$ conda create --name DCA_ER --file DCA_ER_requirements.txt 
+foo@bar:~$ conda create --name PYDCA --file PDYCA_requirements.txt
+```
+See Anaconda documentation for more on environment maintenence and implementation: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+
 # PDB to MSA Mapping
 [Back to Top](#Table-of-Contents)
 
-### Required Files
-* **09062020-Cov19gisaid--SeqIdDesc200-aligned-FastaCikti.fa** -- previously aligned fasta file (for testing)
-	* downloaded from http://www.dilekbalik.com/SARS-CoV-2_ODOTool/
-* **wuhan_ref_fasta** -- covid reference genome: NC_045512.2
-* **09062020-Cov19gisaid--SeqIdDesc200-aligned-FastaCikti.fa** -- Full un-aligned fasta file
-	* downloaded Oct 20 20202 from https://www.epicov.org/epi3/entities/tmp/tmp_sd_2020_10_20_02_12_qigibl_4j510bafde3/sequences_2020-10-19_07-21.fasta.gz
+* Given a PDB structure file we use ProDy to search all available Pfam alignments for the best matching Multiple Sequence Alignment (MSA)
+* This takes the following steps
+	1. Load poly-peptide sequences for all chains in PDB structure
+	2. Loop through different chains of PDB strucutre (ie Chain A, B, etc)
+		* ```ProDy.searchPFAM()``` with poly-peptide chain
+		* Append search results to DataFrame PDB-Pfam matches
+	3. Sort PDB-Pfam matches by 'bitscore'
 
-## Alignment Process
-[Back to Top](#Table-of-Contents)
+* We outline this process with a jupyter notebook using PDB ID 1ZDR as an example
+### Example in PDB2MSA.ipynb jupyter notebook (cells 2-4)
 
-*we want to generate cov_gen_aligned.fasta from our un-aligned fasta file using the Wuhan reference genome*
+# Data Processing
+* Once a PDB ID and Pfam ID have been matched we can acquire the Pfam's MSA. However before applying Expectation Reflection to the MSA we must preprocess the data MOTIVATION!!!
+* Our Data processing is outlined by the following steps
+	1. Looping through PDB-Pfam matches
+		* Load Pfam MSA
+		* Find reference sequence in MSA
+		* Trim MSA by reference sequence
+		* Remove duplicate rows
+		* Remove bad sequences ($\geq$ 80% gaps in sequence)
+		* Remove bad columnds ($\geq$ 80% gaps in column)
+		* Find and Replace amino acid states (Z$\rightarrow$ {Q,E}, B$\rightarrow$ {N,D}, X$\rightarrow$ {All AA})
+		* Remove conserved columns ($\geq$ 80% identity in column)
+* Because the PDB-Pfam matches are ordered before data processing this looping data processing results in a series of pre-processed MSAs ordered by the strength of their match with PDB structure.
+### Example in PDB2MSA.ipynb jupyter notebook (cell 5)
 
-### FASTA Data:
-All FASTA data both created and required for these simulations can be found in the fasta_files/ directory, organized as follows.
-- **.fasta** files containing full genome and clades alignments
-### Test run
-
-```console
-foo@bar:~$ mafft --auto --keeplength --addfragments 09062020-Cov19gisaid--SeqIdDesc200-aligned-FastaCikti.fa wuhan_ref.fasta > 
-```
-
-### Full Genome Alignment
-- Break up un-aligned fasta files
-	- Assumes you have the following files in **/path/to/er_covid19/** 
-		- subject genome file: **wuhan_ref.fasta** 
-		- aligned genome file: **cov_gen_aligned.fasta** 
-		- directory for output: **/path/to/er_covid19/cov_fasta_files/**
-```console
-foo@bar:~$ singularity exec -B /path/to/er_covid19/biowulf,/path/to/er_covid19/covid_proteins /path/to/er_covid19/LADER.simg python break_up_fasta.py /path/to/er_covid19/ 
-```			
-	- This creates 
-		- broken up fasta files for alignment in *path/to/er_covid19/cov_fasta_files/* 
-		- script to align:  **cov_align.swarm** (for cluster computation)
-
-- Run alignment pieces which aligns with mafft (this can be done on a cluster or sequentially).
-
-```console
-foo@bar:~$ ./submit_align_swarm.script 
-```
-
-	- Individual imulation requirements
-		- batches of 15 (lines in **cov_align.swarm**)
-		- 10 GB
-		- 2 hours
-- Finish by concatenating resulting mini-alignments in cov_fasta_files/ (directory created to house mini-alignments) to create full alignment: **covid_genome_full_aligned.fasta**
-```console
-foo@bar:~$ singularity exec -B /path/to/er_covid19/biowulf,/path/to/er_covid19/covid_proteins /path/to/er_covid19/LADER.simg python concat_fasta.py /path/to/er_covid19/ 
-```
-
-### Get Clade Alignments 
-- once you have the full genome aligned file you can get clades using get_clades.py
-- get_clades.py has subject file hard coded:
-
-``` console
-foo@bar:~$  singularity exec -B /path/to/er_covid19/biowulf/,/path/to/er_covid19/covid_proteins /path/to/er_covid19/LADER.simg python get_clades.py /path/to/er_covid19/
-```
-# Anaconda Environment Setup
-[Back to Top](#Table-of-Contents)
 
 # Expectiation Reflection
 [Back to Top](#Table-of-Contents)
-	- Assumes you have the following files in **/path/to/er_covid19/** 
-		- subject genome file: **wuhan_ref.fasta** 
-		- aligned genome file: **covid_genome_full_aligned.fasta** (created in [Full Genome Alignment][#Full-Genome-Alignment])
-		- directory for output: **/path/to/er_covid19/cov_fasta_files/**
-
-- once you have an aligned file you can get DI using ER using run_covGENOME_ER.py
-- file generates .pickle files with DI
-- the different clade and full sequence run are already defined in run_cov_GENOME_ER file.
-	- for all clades see **submit_DI_clade_swarm.script**:
-```console
-foo@bar:~$ ./submit_DI_clade_swarm.script
-```
-	- for full genome see **run_covGENOME_ER.py**
-		- hardcoded existing full aligned file
-```console
-foo@bar:~$  singularity exec -B /path/to/er_covid19/biowulf/,/path/to/er_covid19/covid_proteins /path/to/er_covid19/LADER.simg python run_covGENOME_ER.py 
-```
 
 
 # Other Methods
 [Back to Top](#Table-of-Contents)
 
-## Scripts and Drivers
-* incidence_plotting.py - file for plotting incidence by **region** and **clade**
-* gen_incidence_data.py - driver for generating paper incidence data 
-* make_codon_swarm.py - script to create swarm (cluster) file to map sequences to to resulting amino acids using **codon_mapping.py**
-* make_pair_aa_swarm.py - script to create swarm (cluster) file to map network interactions (from ER simulation) to resulting amino acids using **codon_mapping.py**
-* codon_mapping.py - file which maps a given sequence/region of nucleotides to the resulting amino acid
-* print_pair_counts.py - driver for creating lists of amino acid pair counts from ER-inferred position pairs (detailed description in file)
-* covid_aa_bp_variance.py - a file which computes statistics of amino acid and basepair expression from given genome positions
-* plot_covid_genome_CT.py - file for plotting co-evolving postions of genome by **region** and **clade**
-* expectation_reflection.py - file to run inference of network interactions using Expectation Reflection
-
 ## Results
 [Back to Top](#Table-of-Contents)
-All the data generated by the above scripts are in the Results/ directory and are organized as follows.
 ## Result Data:
-- **.pickle** files containing DI of full genome and clades both processed and unprocessed
-- **.npy** files containing amino acid and basepair data for infered genome positions
-- **.txt** files containing all DI pairs from clade and full genome simulations (for inspection without python run)
+
 
