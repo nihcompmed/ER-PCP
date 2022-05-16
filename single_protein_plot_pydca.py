@@ -75,7 +75,7 @@ def plot_di_compare_methods(ax, ct_flat, di1_flat, di2_flat, ld_flat, labels):
     return ax
 
 
-def pydca_tp_plot(method_visualizers, methods, pdb_id, ld=4, contact_dist=5.):
+def pydca_tp_plot(method_visualizers, methods, pdb_id, pfam_id, ld=4, contact_dist=5.):
 
     fig = plt.figure(figsize=(5,5))
     ax1 = plt.subplot2grid((1,1), (0,0))
@@ -131,7 +131,7 @@ def pydca_tp_plot(method_visualizers, methods, pdb_id, ld=4, contact_dist=5.):
         plt.tight_layout()
         plt.savefig('%s_%s_%s_pydca_tp_rate.pdf' % (pdb_id, pfam_id, methods[0]) )
     
-def pydca_contact_plot(method_visualizer, method, ld=4, contact_dist=5. ):
+def pydca_contact_plot(method_visualizer, method, pdb_id, pfam_id, ld=4, contact_dist=5. ):
     contact_categories_dict = method_visualizer.contact_categories()
     true_positives = contact_categories_dict['tp']
     false_positives = contact_categories_dict['fp']

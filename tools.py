@@ -614,13 +614,31 @@ def contact_map(pdb_df, pdb_file, removed_cols, pdb_s_index, pdb_out_dir='./', p
 
     # Extract coordinates and sequence char in PDB-range\
 
-    ct_full = distance_matrix(pp_ca_coords_full, pp_ca_coords_full)
+    ct_full = simple_distance_matrix(pp_ca_coords_full, pp_ca_coords_full)
     
     # NEW create ct using Aligned coordinates
-    ct = distance_matrix(aligned_ca_coords, aligned_ca_coords)
+    ct = simple_distance_matrix(aligned_ca_coords, aligned_ca_coords)
+    print(ct)
 
     return ct, ct_full
 
+def simple_distance_matrix(x,y,p=2):
+    if len(x) != len(y):
+        print('distance matrix for coordinates should be square!')
+        sys.exit()
+
+    dm = np.empty((len(x), len(y)))
+    for i, coord1 in enumerate(x):
+        for j, coord2 in enumerate(y):
+            x1 = coord1[0]
+            y1 = coord1[1]
+            z1 = coord1[2]
+            x2 = coord2[0]
+            y2 = coord2[1]
+            z2 = coord2[2]
+            dm[i,j] = ( (x1 - x2 ) ** p + (y1 - y2 ) ** p + (z1 - z2 ) ** p ) ** 1./p
+            dm[j,i] = dm[i, j]
+    return dm 
 
 
 def generate_roc_curve(ct, di, ct_thres, s_index, ld_thresh=5, get_uniform=False):
